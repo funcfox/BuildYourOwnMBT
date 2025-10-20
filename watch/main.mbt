@@ -1,8 +1,11 @@
 ///|
 let challenge_names = [
+  // typecheck
   "tokenize_ident_test", "tokenize_keyword_test", "tokenize_comments_test", "tokenize_symbols_test",
   "tokenize_operator_test", "tokenize_integer_test", "tokenize_float_test", "tokenize_string_test",
-  "tokenize_code_test", "parse_simple_atom_expr_test", "parse_simple_apply_expr_test",
+  "tokenize_code_test",
+  // parser
+  "parse_simple_atom_expr_test", "parse_simple_apply_expr_test",
   "parse_simple_expr_test", "parse_simple_unary_expr_test", "parse_simple_binary_expr_test",
   "parse_paren_expr_test", "parse_array_make_test", "parse_array_expr_test", "parse_simple_array_access_expr_test",
   "parse_simple_call_expr_test", "parse_simple_field_access_expr_test", "parse_complex_apply_expr_test",
@@ -11,6 +14,14 @@ let challenge_names = [
   "parse_if_expr_test", "parse_while_stmt_test", "parse_complex_expr_test", "parse_local_function_test",
   "parse_top_function_test", "parse_struct_def_test", "parse_struct_construct_test",
   "parse_top_let_test", "parse_program_test",
+  // typecheck
+   "typecheck_normal_type_test", "typecheck_struct_def_test", "typecheck_type_var_test",
+  "typecheck_simple_atom_expr_test", "typecheck_simple_apply_expr_test", "typecheck_simple_expr_test",
+  "typecheck_atom_expr_test", "typecheck_apply_expr_test",
+  "typecheck_let_mut_stmt_test", "typecheck_top_let_test", "typecheck_let_stmt_test",
+  "typecheck_assign_stmt_test", "typecheck_block_expr_test", "typecheck_expr_test",
+  "typecheck_if_expr_test", "typecheck_while_stmt_test", "typecheck_local_func_test",
+  "typecheck_struct_construct_test", "typecheck_top_func_test", "typecheck_program_test",
 ]
 
 ///|
