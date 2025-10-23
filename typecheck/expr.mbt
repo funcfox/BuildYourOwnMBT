@@ -66,7 +66,9 @@ pub fn binop_is_arithmetic(bin_op : BinaryOp) -> Bool {
 }
 
 ///|
-pub fn parser_binop_to_typecheck_binop(tok_bin_op : @parser.BinaryOp) -> BinaryOp {
+pub fn parser_binop_to_typecheck_binop(
+  tok_bin_op : @parser.BinaryOp,
+) -> BinaryOp {
   match tok_bin_op {
     Add => Add
     Sub => Sub

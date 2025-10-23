@@ -1,4 +1,4 @@
-
+///|
 async fn main {
   let help_info =
     #|Usage: tmbt [options]
@@ -61,7 +61,7 @@ async fn main {
     println(prog)
     return
   }
-  let typecheck_ctx = @typecheck.Context::new();
+  let typecheck_ctx = @typecheck.Context::new()
   let checked_prog = typecheck_ctx.check_program(prog)
   if args.contains("-stop-after=typecheck") {
     println("Type-Checked AST:")

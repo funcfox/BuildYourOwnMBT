@@ -28,5 +28,3 @@ pub fn Context::check_atom_expr(
   ignore(atom_expr)
   raise TypeCheckError("check_atom_expr not implemented")
 }
-
-

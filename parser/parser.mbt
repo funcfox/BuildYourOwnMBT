@@ -24,9 +24,7 @@ pub fn parse(tokens : Array[Token]) -> Program raise ParseError {
       continue tokens[1:]
     }
     [{ kind: EOF }, ..] => break
-    [] => {
-      panic()
-    }
+    [] => panic()
     tokens => raise ParseError("Unexpected token in top level: \{tokens[0]}")
   }
   let prog = Program::{ top_lets, top_functions, struct_defs }
