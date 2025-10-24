@@ -15,6 +15,6 @@ pub(all) enum ApplyExprKind {
 pub fn parse_apply_expr(
   tokens : ArrayView[Token],
 ) -> (ApplyExpr, ArrayView[Token]) raise ParseError {
-  ignore(tokens)
-  ...
+  let (atm, rest) = parse_atom_expr(tokens)
+  (ApplyExpr::{ kind: ApplyExprKind::AtomExpr(atm) }, rest)
 }

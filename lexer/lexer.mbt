@@ -177,6 +177,8 @@ fn tokenize_ident(
       "while" => Keyword(While)
       "for" => Keyword(For)
       "return" => Keyword(Return)
+      "true" => Bool(true)
+      "false" => Bool(false)
       "_" => Wildcard
       _ => Lower(toks)
     }
