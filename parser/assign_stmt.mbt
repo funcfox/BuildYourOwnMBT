@@ -31,7 +31,17 @@ fn AssignOp::from_tok_assign_op(op : @lexer.AssignOp) -> AssignOp {
 pub fn parse_assign_stmt(
   tokens : ArrayView[Token],
 ) -> (AssignStmt, ArrayView[Token]) raise ParseError {
-  ignore(AssignOp::from_tok_assign_op)
-  ignore(tokens)
-  ...
+  // assign_stmt ::= left_value assign_op expr ";"
+  let (left_value, rest) = parse_left_value(tokens)
+  let (op, rest) = match rest {
+    [{ kind: AssignOp(aop) }, .. rst] => (aop, rst)
+    _ => raise ParseError("expected AssignOp")
+  }
+  let (expr, rest) = parse_expr(rest)
+  let op = AssignOp::from_tok_assign_op(op)
+  let rest = match rest {
+    [{ kind: Symbol(";") }, .. rst] => rst
+    _ => raise ParseError("expected ';'")
+  }
+  (AssignStmt::{ left_value, op, expr }, rest)
 }

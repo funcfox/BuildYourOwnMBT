@@ -9,6 +9,27 @@ pub(all) struct LetStmt {
 pub fn parse_let_stmt(
   tokens : ArrayView[Token],
 ) -> (LetStmt, ArrayView[Token]) raise ParseError {
-  ignore(tokens)
-  ...
+  // let_stmt ::= "let" pattern (":" type)? "=" expr ";"
+  let rest = match tokens {
+    [{ kind: Keyword(Let) }, .. rest] => rest
+    _ => raise ParseError("expected 'let'")
+  }
+  let (pt, rest) = parse_pattern(rest)
+  let (ty, rest) = match rest {
+    [{ kind: Symbol(":") }, .. rst] => {
+      let (type_, rest_) = parse_type(rst)
+      (Some(type_), rest_)
+    }
+    _ => (None, rest)
+  }
+  let rest = match rest {
+    [{ kind: AssignOp(Assign) }, .. rst] => rst
+    _ => raise ParseError("expected '='")
+  }
+  let (expr, rest) = parse_expr(rest)
+  let rest = match rest {
+    [{ kind: Symbol(";") }, .. rst] => rst
+    _ => raise ParseError("expected ';'")
+  }
+  (LetStmt::{ pattern: pt, ty, expr }, rest)
 }

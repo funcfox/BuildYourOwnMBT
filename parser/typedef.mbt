@@ -20,8 +20,50 @@ pub(all) enum TypeKind {
 pub fn parse_type(
   tokens : ArrayView[Token],
 ) -> (Type, ArrayView[Token]) raise ParseError {
-  ignore(tokens)
-  ...
+  match tokens {
+    [{ kind: Upper("Unit") }, .. rest] => (Type::{ kind: TypeKind::Unit }, rest)
+    [{ kind: Upper("Bool") }, .. rest] => (Type::{ kind: TypeKind::Bool }, rest)
+    [{ kind: Upper("Int") }, .. rest] => (Type::{ kind: TypeKind::Int }, rest)
+    [{ kind: Upper("Double") }, .. rest] =>
+      (Type::{ kind: TypeKind::Double }, rest)
+    [{ kind: Upper("String") }, .. rest] =>
+      (Type::{ kind: TypeKind::String }, rest)
+    [{ kind: Upper("Array") }, { kind: Bracket('[') }, .. rest] => {
+      let (ty, rest) = parse_type(rest)
+      let rest = match rest {
+        [{ kind: Bracket(']') }, .. rst] => rst
+        _ => raise ParseError("expected ']'")
+      }
+      (Type::{ kind: TypeKind::Array(ty.kind) }, rest)
+    }
+    [{ kind: Bracket('(') }, .. rest] => {
+      let mut rest = rest
+      let inner = []
+      while !(rest is [{ kind: Bracket(')') }, ..]) {
+        let (ty, rest_) = parse_type(rest)
+        rest = rest_
+        inner.push(ty.kind)
+        rest = match rest {
+          [{ kind: Symbol(",") }, .. rst] => rst
+          _ => rest
+        }
+      }
+      rest = match rest {
+        [{ kind: Bracket(')') }, .. rst] => rst
+        _ => raise ParseError("expected a ')'")
+      }
+      match rest {
+        [{ kind: Symbol("->") }, .. rst] => {
+          let (ty, rst) = parse_type(rst)
+          (Type::{ kind: TypeKind::Function(inner, ty.kind) }, rst)
+        }
+        _ => (Type::{ kind: TypeKind::Tuple(inner) }, rest)
+      }
+    }
+    [{ kind: Upper(type_name) }, .. rest] =>
+      (Type::{ kind: TypeKind::Defined(type_name) }, rest)
+    _ => raise ParseError("unknown type: \{tokens[0]}")
+  }
 }
 
 ///|
