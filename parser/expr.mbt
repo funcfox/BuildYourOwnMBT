@@ -67,6 +67,14 @@ pub fn parse_expr(
   // let (app, rest) = parse_apply_expr(tokens)
   // (Expr::{ kind: ExprKind::ApplyExpr(app) }, rest)
   match tokens {
+    [{ kind: Keyword(If) }, ..] => {
+      let (if_expr, rest) = parse_if_expr(tokens)
+      (Expr::{ kind: IfExpr(if_expr) }, rest)
+    }
+    [{ kind: Bracket('{') }, ..] => {
+      let (block_expr, rest) = parse_block_expr(tokens)
+      (Expr::{ kind: ExprKind::BlockExpr(block_expr) }, rest)
+    }
     [{ kind: Not }, .. rest] => {
       let (exp, rst) = parse_expr(rest)
       (Expr::{ kind: ExprKind::NotExpr(exp) }, rst)

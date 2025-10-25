@@ -29,7 +29,8 @@ pub fn parse_stmt(
     }
     [{ kind: Keyword(Return) }, .. rest] =>
       match rest {
-        [{ kind: Symbol(";") }, .. rst] => (StmtKind::ReturnStmt(None), rest)
+        // [{ kind: Symbol(";") }, .. rst] => (StmtKind::ReturnStmt(None), rest)
+        [{ kind: Symbol(";") }, .. rst] => (StmtKind::ReturnStmt(None), rst)
         _ => {
           let (expr, rst_) = parse_expr(rest)
           let rst_ = match rst_ {
