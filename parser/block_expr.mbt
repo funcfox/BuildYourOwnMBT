@@ -23,3 +23,23 @@ pub fn parse_block_expr(
   }
   (BlockExpr::{ stmts, }, rest)
 }
+
+// test "test block expr" {
+//   let inp =
+//     #|{
+//     #|  let c = Circle::{ radius: 2.0 };
+//     // #|  let r = Rectangle::{ a: 3.0, b: 4.0, c: 5.0 };
+//     // #|  let ac = area_circle(c);
+//     // #|  let ar = area_rectangle(r);
+//     // #|  if ac > ar {
+//     // #|    print_str("Circle area is larger");
+//     // #|  } else {
+//     // #|    print_str("Rectangle area is larger");
+//     // #|  };
+//     #|}
+//   let tokens = @lexer.tokenize(inp)
+//   println(tokens)
+//   let (block, rest) = parse_block_expr(tokens)
+//   println(block)
+//   // println(rest)
+// }

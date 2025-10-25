@@ -33,3 +33,14 @@ pub fn parse_let_stmt(
   }
   (LetStmt::{ pattern: pt, ty, expr }, rest)
 }
+
+///|
+// test "test let" {
+//   let code =
+//     #| let c = Circle::{ radius: 2.0 };
+//   let tokens = @lexer.tokenize(code)
+//   println(tokens)
+//   let (program, rest) = parse_let_stmt(tokens)
+//   println(program)
+//   println(rest)
+// }

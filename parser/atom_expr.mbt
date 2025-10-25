@@ -41,7 +41,9 @@ pub fn parse_atom_expr(
       { kind: Bracket('(') },
       ..,
     ] => parse_array_make_expr(tokens)
-    [{kind: Bracket('[')}, ..] => parse_array_expr(tokens)
+    [{ kind: Bracket('[') }, ..] => parse_array_expr(tokens)
+    [{ kind: Upper(_) }, { kind: Symbol("::") }, { kind: Bracket('{') }, ..] =>
+      parse_struct_construct(tokens)
     _ => raise ParseError("Expected Atom")
   }
 }
@@ -78,8 +80,11 @@ fn parse_paren_expr(
   (AtomExpr::{ kind: result }, rest)
 }
 
-fn parse_expr_list(tokens: ArrayView[Token]) -> (Array[Expr], ArrayView[Token]) raise ParseError {
-    let mut rest = match tokens {
+///|
+fn parse_expr_list(
+  tokens : ArrayView[Token],
+) -> (Array[Expr], ArrayView[Token]) raise ParseError {
+  let mut rest = match tokens {
     [{ kind: Bracket('(') }, .. rest] => rest
     _ => raise ParseError("expected a '('")
   }
@@ -100,7 +105,6 @@ fn parse_expr_list(tokens: ArrayView[Token]) -> (Array[Expr], ArrayView[Token]) 
   }
   (inner, rest)
 }
-
 
 ///|
 fn parse_array_make_expr(
@@ -129,8 +133,11 @@ fn parse_array_make_expr(
   (AtomExpr::{ kind: AtomExprKind::ArrayMake(size_expr, init_expr) }, rest)
 }
 
-fn parse_array_expr(tokens: ArrayView[Token]) -> (AtomExpr, ArrayView[Token]) raise ParseError {
-    let mut rest = match tokens {
+///|
+fn parse_array_expr(
+  tokens : ArrayView[Token],
+) -> (AtomExpr, ArrayView[Token]) raise ParseError {
+  let mut rest = match tokens {
     [{ kind: Bracket('[') }, .. rest] => rest
     _ => raise ParseError("expected a '['")
   }
@@ -149,5 +156,5 @@ fn parse_array_expr(tokens: ArrayView[Token]) -> (AtomExpr, ArrayView[Token]) ra
     [{ kind: Bracket(']') }, .. rst] => rst
     _ => raise ParseError("expected a ']'")
   }
-  (AtomExpr::{kind: AtomExprKind::Array(inner)}, rest)
+  (AtomExpr::{ kind: AtomExprKind::Array(inner) }, rest)
 }
