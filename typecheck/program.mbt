@@ -54,9 +54,17 @@ pub fn Context::new() -> Context {
 
 ///|
 pub fn Context::lookup_type(self : Context, name : String) -> Type? {
-  ignore(self)
-  ignore(name)
-  None
+  // ignore(self)
+  // ignore(name)
+  // None
+  match self.type_env.get(name) {
+    Some({ kind, mutable }) => {
+      let kind = self.get_typekind(kind) catch { _ => return None }
+      let ty = Type::{ kind, mutable }
+      Some(ty)
+    }
+    None => None
+  }
 }
 
 ///|
@@ -76,6 +84,12 @@ pub fn Context::exit_scope(self : Context) -> Unit {
 ///|
 pub fn Context::set_current_func_ret_ty(self : Context, ty : TypeKind) -> Unit {
   self.current_func_ret_ty = Some(ty)
+}
+
+///|
+fn Context::new_typevar(self : Self) -> (Int, TypeKind) {
+  let new_id = self.type_vars.length()
+  (new_id, TypeKind::TypeVar(new_id))
 }
 
 ///|
