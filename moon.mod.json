@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "deps": {
     "moonbitlang/async": "0.9.0",
-    "Kaida-Amethyst/MoonLLVM": "0.1.8"
+    "Kaida-Amethyst/MoonLLVM": "0.1.10"
   },
   "readme": "README.mbt.md",
   "repository": "",
