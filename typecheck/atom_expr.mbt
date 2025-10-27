@@ -53,8 +53,9 @@ pub fn Context::check_atom_expr(
     }
     Array(exprs) =>
       if exprs.is_empty() {
-        let (tid, ty) = self.new_typevar()
-        self.type_vars.set(tid, ty) // TODO: check here
+        // let (tid, ty) = self.new_typevar()
+        // self.type_vars.set(tid, ty) // TODO: check here
+        let ty = self.new_typevar()
         AtomExpr::{ kind: AtomExprKind::Array([]), ty: TypeKind::Array(ty) }
       } else {
         let exprs = exprs.map(fn(e) { self.check_expr(e) })

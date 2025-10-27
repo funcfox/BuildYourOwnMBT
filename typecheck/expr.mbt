@@ -141,51 +141,14 @@ pub fn Context::check_expr(
           } else {
             raise TypeCheckError("\{erpfx}: logic op leaf type must be Bool")
           }
+        } else if binop_is_arithmetic(op) {
+          let ret_ty = self.check_rettype_is_int_or_double(left.ty, right.ty)
+          Expr::{ kind: ExprKind::BinaryExpr(op, left, right), ty: ret_ty }
+        } else if binop_is_cmp(op) {
+          let _ = self.check_rettype_is_int_or_double(left.ty, right.ty) // TODO: check here: cmp op's leaf type can be Int | Double | Bool
+          Expr::{ kind: ExprKind::BinaryExpr(op, left, right), ty: Bool }
         } else {
-          let (ty_non_var, ty_any) = match (left.ty, right.ty) {
-            (TypeVar(_), TypeVar(_)) =>
-              raise TypeCheckError(
-                "\{erpfx}: BinaryExpr left or right must have one non-typevar",
-              )
-            (TypeVar(_) as tl, tr) => (tr, tl)
-            r => r
-          }
-          if binop_is_arithmetic(op) {
-            match ty_non_var {
-              Int | Double as ty =>
-                if self.is_type_compatible(ty_non_var, ty_any) {
-                  Expr::{ kind: ExprKind::BinaryExpr(op, left, right), ty }
-                } else {
-                  raise TypeCheckError(
-                    "\{erpfx}: arith op leaf expr type not compatible",
-                  )
-                }
-              _ =>
-                raise TypeCheckError(
-                  "\{erpfx}: arith op leaf expr type must be one of Int | Double",
-                )
-            }
-          } else if binop_is_cmp(op) {
-            match ty_non_var {
-              Int | Double | Bool =>
-                if self.is_type_compatible(ty_non_var, ty_any) {
-                  Expr::{
-                    kind: ExprKind::BinaryExpr(op, left, right),
-                    ty: Bool,
-                  }
-                } else {
-                  raise TypeCheckError(
-                    "\{erpfx}: cmp op leaf expr type not compatible",
-                  )
-                }
-              _ =>
-                raise TypeCheckError(
-                  "\{erpfx}: cmp op leaf expr type must be one of Int | Double | Bool",
-                )
-            }
-          } else {
-            raise TypeCheckError("[Context::check_expr] unknown type op: \{op}")
-          }
+          raise TypeCheckError("[Context::check_expr] unknown type op: \{op}")
         }
       } else {
         raise TypeCheckError(
@@ -193,9 +156,51 @@ pub fn Context::check_expr(
         )
       }
     }
+    IfExpr(if_expr) => {
+      let if_expr = self.check_if_expr(if_expr)
+      Expr::{ kind: IfExpr(if_expr), ty: if_expr.ty }
+    }
     _ =>
       raise TypeCheckError(
         "[Context::check_expr] not yet impl it: \{expr.kind}",
       )
+  }
+}
+
+///|
+fn Context::check_rettype_is_int_or_double(
+  self : Self,
+  ty_left : TypeKind,
+  ty_right : TypeKind,
+) -> TypeKind raise TypeCheckError {
+  let pfx = "[Context::check_rettype_is_int_or_double]"
+  let ty_left = self.get_typekind(ty_left)
+  let ty_right = self.get_typekind(ty_right)
+  if !self.is_type_compatible(ty_left, ty_right) {
+    raise TypeCheckError(
+      "\{pfx} left[\{ty_left}] is not match right[\{ty_right}]",
+    )
+  }
+  let (ty, vty) = match (ty_left, ty_right) {
+    (TypeVar(_), TypeVar(_)) => return ty_left
+    (TypeVar(_) as vty, ty) => (ty, vty)
+    (ty, TypeVar(_) as vty) => (ty, vty)
+    (lty, rty) =>
+      if self.is_type_compatible(lty, rty) {
+        return lty
+      } else {
+        raise TypeCheckError("\{pfx} left[\{lty}] is not match right[\{rty}]")
+      }
+  }
+  match ty {
+    Int | Double =>
+      if self.is_type_compatible(ty, vty) {
+        ty
+      } else {
+        raise TypeCheckError(
+          "\{pfx} left[\{ty_left}] is not match right[\{ty_right}]",
+        )
+      }
+    _ => raise TypeCheckError("\{pfx} type must be Int or Double")
   }
 }

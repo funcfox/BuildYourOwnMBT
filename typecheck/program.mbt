@@ -87,9 +87,11 @@ pub fn Context::set_current_func_ret_ty(self : Context, ty : TypeKind) -> Unit {
 }
 
 ///|
-fn Context::new_typevar(self : Self) -> (Int, TypeKind) {
+fn Context::new_typevar(self : Self) -> TypeKind {
   let new_id = self.type_vars.length()
-  (new_id, TypeKind::TypeVar(new_id))
+  let ty = TypeKind::TypeVar(new_id)
+  self.type_vars.set(new_id, ty) // TODO: check here
+  ty
 }
 
 ///|
