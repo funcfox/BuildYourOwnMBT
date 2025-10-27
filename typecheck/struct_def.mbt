@@ -25,7 +25,7 @@ pub fn Context::check_struct_def(
   self : Self,
   struct_def : @parser.StructDef,
 ) -> StructDef raise TypeCheckError {
-  StructDef::{
+  let sd = StructDef::{
     name: struct_def.name,
     fields: struct_def.fields.map(fn(t) {
       StructField::{
@@ -34,4 +34,6 @@ pub fn Context::check_struct_def(
       }
     }),
   }
+  self.struct_defs.set(struct_def.name, sd) // TODO: check here
+  sd
 }

@@ -22,7 +22,11 @@ pub fn Context::check_block_expr(
     )
   let ret_ty = match last_stmt.kind {
     ExprStmt(expr) => self.get_typekind(expr.ty)
-    _ => Unit
+    _ =>
+      match self.current_func_ret_ty {
+        Some(t) => t
+        None => Unit
+      }
   }
   self.exit_scope()
   BlockExpr::{ stmts, ty: ret_ty }

@@ -40,6 +40,14 @@ pub fn parse_stmt(
           (StmtKind::ReturnStmt(Some(expr)), rst_)
         }
       }
+    [{kind: Keyword(While)}, ..] => {
+      let (while_stmt, rest) = parse_while_stmt(tokens)
+      (WhileStmt(while_stmt), rest)
+    }
+    [{kind: Keyword(Fn)}, ..] => {
+      let (local_function, rest) = parse_local_function(tokens)
+      (LocalFunction(local_function), rest)
+    }
     _ => _parse_assign_stmt(tokens) catch { _ => _parse_expr(tokens) }
   }
   (Stmt::{ kind, }, rest)

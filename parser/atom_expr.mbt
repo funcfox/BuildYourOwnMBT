@@ -44,7 +44,7 @@ pub fn parse_atom_expr(
     [{ kind: Bracket('[') }, ..] => parse_array_expr(tokens)
     [{ kind: Upper(_) }, { kind: Symbol("::") }, { kind: Bracket('{') }, ..] =>
       parse_struct_construct(tokens)
-    _ => raise ParseError("Expected Atom")
+    _ => raise ParseError("Expected Atom, get: \{tokens}")
   }
 }
 

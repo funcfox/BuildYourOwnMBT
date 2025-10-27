@@ -106,19 +106,35 @@ pub fn Context::check_program(
   self : Context,
   program : @parser.Program,
 ) -> Program raise TypeCheckError {
-  ignore(self)
-  ignore(program)
-  raise TypeCheckError("check_program not implemented")
+  self.collect_struct_names(program)
+  // raise TypeCheckError("[Context::check_program] debug halt")
+  self.collect_function_types(program)
+  let top_lets = Map::new()
+  program.top_lets.each(fn(name, tl) {
+    let tl = self.check_top_let(tl)
+    top_lets.set(name, tl)
+  })
+  let top_functions = Map::new()
+  program.top_functions.each(fn(name, tf) {
+    let tf = self.check_top_function(tf)
+    top_functions.set(name, tf)
+  })
+  let struct_defs = Map::new()
+  program.struct_defs.each(fn(name, sd) {
+    let sd = self.check_struct_def(sd)
+    struct_defs.set(name, sd)
+  })
+  Program::{ top_lets, top_functions, struct_defs }
 }
 
 ///|
 pub fn Context::collect_struct_names(
   self : Context,
   program : @parser.Program,
-) -> Unit raise TypeCheckError {
-  ignore(self)
-  ignore(program)
-  raise TypeCheckError("collect_struct_names not implemented")
+) -> Unit {
+  program.struct_defs.each(fn(name, sdef) {
+    self.struct_defs.set(name, StructDef::{ name: sdef.name, fields: [] })
+  })
 }
 
 ///|
@@ -126,7 +142,16 @@ pub fn Context::collect_function_types(
   self : Context,
   program : @parser.Program,
 ) -> Unit raise TypeCheckError {
-  ignore(self)
-  ignore(program)
-  raise TypeCheckError("collect_function_types not implemented")
+  program.top_functions.each(fn(fname, fdef) {
+    let kind = {
+      let param_tys = fdef.param_list.map(fn(p) {
+        self.check_parser_typekind(p.ty.kind)
+      })
+      let ret_ty = self.check_parser_typekind(fdef.ret_ty.kind)
+      TypeKind::Function(param_tys, ret_ty)
+    }
+    let ty = Type::{ kind, mutable: false }
+    self.type_env.set(fname, ty)
+    self.func_types.set(fname, kind)
+  })
 }
