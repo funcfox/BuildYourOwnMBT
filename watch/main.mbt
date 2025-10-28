@@ -154,6 +154,7 @@ async fn main {
   let mut first_not_passed : Challenge? = None
   let mut challenge_idx = 0
   for i, challenge in challenges {
+    println(challenge.name) // TODO: remove this
     if !challenge.is_passed() {
       first_not_passed = Some(challenge)
       challenge_idx = i

@@ -38,9 +38,25 @@ pub fn Context::typekind_to_knf(
   self : Context,
   tk : @typecheck.TypeKind,
 ) -> Type raise KnfTransformError {
-  ignore(self)
-  ignore(tk)
-  raise KnfTransformError("typekind_to_knf Not implemented")
+  match tk {
+    Struct(n) => Struct(n)
+    Function(arg_tks, ret_tk) =>
+      Function(
+        arg_tks.map(fn(k) { self.typekind_to_knf(k) }),
+        self.typekind_to_knf(ret_tk),
+      )
+    Array(k) => Array(self.typekind_to_knf(k))
+    Tuple(tk_arr) => Tuple(tk_arr.map(fn(k) { self.typekind_to_knf(k) }))
+    String => String
+    Double => Double
+    Int => Int
+    Bool => Bool
+    Unit => Unit
+    _ =>
+      raise KnfTransformError(
+        "[Context::typekind_to_knf] unsatisfied type \{tk}",
+      )
+  }
 }
 
 ///|
@@ -48,7 +64,5 @@ pub fn Context::type_to_knf(
   self : Context,
   t : @typecheck.Type,
 ) -> Type raise KnfTransformError {
-  ignore(self)
-  ignore(t)
-  raise KnfTransformError("type_to_knf Not implemented")
+  self.typekind_to_knf(t.kind)
 }
