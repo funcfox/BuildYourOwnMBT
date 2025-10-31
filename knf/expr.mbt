@@ -127,9 +127,12 @@ pub fn Context::expr_to_knf(
       let name = self.expr_to_knf_name(expr, ty, stmts)
       (stmts, KnfExpr::Not(name))
     }
-    BlockExpr(_) => ...
+    BlockExpr(blk_expr) => {
+      let blk = self.block_expr_to_knf(blk_expr)
+      ([], Block(blk))
+    }
     ApplyExpr(expr) => self.apply_expr_to_knf(expr)
-    IfExpr(_) => ...
+    IfExpr(if_expr) => self.if_expr_to_knf(if_expr)
   }
 }
 

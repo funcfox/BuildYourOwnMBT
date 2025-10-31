@@ -17,9 +17,25 @@ pub fn Context::stmt_to_knf(
   self : Context,
   stmt : @typecheck.Stmt,
 ) -> Array[KnfStmt] raise KnfTransformError {
-  ignore(self)
-  ignore(stmt)
-  raise KnfTransformError("stmt_to_knf not implemented")
+  match stmt.kind {
+    ReturnStmt(expr) => match expr {
+      Some(e) => {
+        let (stmts, e_) = self.expr_to_knf(e)
+        [..stmts, Return(e_)]
+      }
+      None => [ReturnUnit]
+    }
+    ExprStmt(expr) => {
+      let (stmts, expr) = self.expr_to_knf(expr)
+      [..stmts, ExprStmt(expr)]
+    }
+    WhileStmt(wl_stmt) => self.while_stmt_to_knf(wl_stmt)
+    AssignStmt(ass_stmt) => self.assign_stmt_to_knf(ass_stmt)
+    LetMutStmt(lm_stmt) => self.let_mut_stmt_to_knf(lm_stmt)
+    LetStmt(l_stmt) => self.let_stmt_to_knf(l_stmt)
+    // LocalFunction(lf) => ...
+    t => raise KnfTransformError("\{t} is not impl yet")
+  }
 }
 
 ///|
