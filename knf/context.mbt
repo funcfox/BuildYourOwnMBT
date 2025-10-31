@@ -79,9 +79,21 @@ pub fn Context::new() -> Context {
 
 ///|
 pub fn Context::lookup_name(self : Context, s : String) -> (Name, Type)? {
-  ignore(self) // Placeholder
-  ignore(s)
-  None
+  let name_ = loop (self.name_env.get(s), self.name_env.parent) {
+    (Some(name), _) => break Some(name)
+    (None, Some(parent)) => continue (parent.get(s), parent.parent)
+    (None, None) => break None
+  }
+  if name_ is Some(name) {
+    self.name_env.get_name_type(name).map(fn(ty) { (name, ty) })
+  } else {
+    self.globals
+    .get(s)
+    .map(fn(ty) {
+      let name = Name::{ id: s, slot: 0 } // TODO: check impl
+      (name, ty)
+    })
+  }
 }
 
 ///|

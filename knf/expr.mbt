@@ -94,9 +94,87 @@ pub fn Context::expr_to_knf(
   self : Context,
   expr : @typecheck.Expr,
 ) -> (Array[KnfStmt], KnfExpr) raise KnfTransformError {
-  ignore(self)
-  ignore(expr)
-  raise KnfTransformError("expr_to_knf not implemented")
+  match expr.kind {
+    BinaryExpr(op, left, right) => {
+      let op = binop_to_knf(op)
+      // let ty_left = self.typekind_to_knf(left.ty)
+      // let ty_right = self.typekind_to_knf(right.ty)
+      // let (stmts_left, left_expr) = self.expr_to_knf(left)
+      // let (stmts_right, right_expr) = self.expr_to_knf(right)
+      // let name_left = self.expr_to_knf_name(left_expr, ty_left, stmts_left)
+      // let name_right = self.expr_to_knf_name(right_expr, ty_right, stmts_right)
+      let (stmts_left, name_left) = self.expr_to_knf_binary_subexpr(left)
+      let (stmts_right, name_right) = self.expr_to_knf_binary_subexpr(right)
+      (
+        [..stmts_left, ..stmts_right],
+        KnfExpr::Binary(op, name_left, name_right),
+      )
+    }
+    NegExpr(expr) => {
+      // let ty = self.typekind_to_knf(expr.ty)
+      // let name = self.add_temp(ty)
+      // let (stmts, expr) = self.expr_to_knf(expr)
+      // let let_stmt = KnfStmt::Let(name, ty, expr)
+      // ([..stmts, let_stmt], KnfExpr::Neg(name))
+      let ty = self.typekind_to_knf(expr.ty)
+      let (stmts, expr) = self.expr_to_knf(expr)
+      let name = self.expr_to_knf_name(expr, ty, stmts)
+      (stmts, KnfExpr::Neg(name))
+    }
+    NotExpr(expr) => {
+      let ty = self.typekind_to_knf(expr.ty)
+      let (stmts, expr) = self.expr_to_knf(expr)
+      let name = self.expr_to_knf_name(expr, ty, stmts)
+      (stmts, KnfExpr::Not(name))
+    }
+    BlockExpr(_) => ...
+    ApplyExpr(expr) => self.apply_expr_to_knf(expr)
+    IfExpr(_) => ...
+  }
+}
+
+///|
+fn Context::expr_to_knf_name(
+  self : Context,
+  expr : KnfExpr,
+  ty : Type,
+  stmts : Array[KnfStmt],
+) -> Name {
+  let name = self.add_temp(ty)
+  stmts.push(KnfStmt::Let(name, ty, expr))
+  name
+}
+
+///|
+fn Context::expr_to_knf_binary_subexpr(
+  self : Context,
+  expr : @typecheck.Expr,
+) -> (Array[KnfStmt], Name) raise KnfTransformError {
+  let ty = self.typekind_to_knf(expr.ty)
+  let (stmts, expr) = self.expr_to_knf(expr)
+  let name = match expr {
+    // ArrayMake(_) => ...
+    // ArrayLiteral(_) => ...
+    // CreateStruct(_) => ...
+    // TupleAccess(_) => ...
+    // FieldAccess(_) => ...
+    // ArrayAccess(_) => ...
+    // Call(_) => ...
+    // Block(_) => ...
+    // If(_) => ...
+    // Binary(_) => ...
+    // Neg(_) => ...
+    // Not(_) => ...
+    Ident(name) => name
+    // String(_) => ...
+    // Double(_) => ...
+    // Bool(_) => ...
+    // Int(_) => ...
+    // Unit => ...
+    // TupleLiteral(_) => ...
+    _ => self.expr_to_knf_name(expr, ty, stmts)
+  }
+  (stmts, name)
 }
 
 ///|
