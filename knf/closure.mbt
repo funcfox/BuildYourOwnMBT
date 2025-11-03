@@ -37,7 +37,26 @@ pub fn Context::local_function_to_knf(
   self : Context,
   local_function : @typecheck.LocalFunction,
 ) -> KnfClosure raise KnfTransformError {
-  ignore(self)
-  ignore(local_function)
-  raise KnfTransformError("LocalFunction Knf transformation not implemented")
+  let ret_ty = self.type_to_knf(local_function.ret_ty)
+  let ftype = Type::Function(
+    local_function.param_list.map(fn(it) { self.type_to_knf(it.1) }),
+    ret_ty,
+  )
+  let fname = self.add_new_name(local_function.fname, ftype)
+  self.enter_scope()
+  let params = local_function.param_list.map(fn(it) {
+    let ty = self.type_to_knf(it.1)
+    let name = self.add_new_name(it.0, ty)
+    (name, ty)
+  })
+  let body = self.block_expr_to_knf(local_function.body)
+  let capture_variable = self.name_env.capture
+  self.exit_scope()
+  KnfClosure::{
+    name: fname,
+    params,
+    ret_ty,
+    body,
+    captured_vars: capture_variable,
+  }
 }

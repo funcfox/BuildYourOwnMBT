@@ -33,8 +33,8 @@ pub fn Context::stmt_to_knf(
     AssignStmt(ass_stmt) => self.assign_stmt_to_knf(ass_stmt)
     LetMutStmt(lm_stmt) => self.let_mut_stmt_to_knf(lm_stmt)
     LetStmt(l_stmt) => self.let_stmt_to_knf(l_stmt)
-    // LocalFunction(lf) => ...
-    t => raise KnfTransformError("\{t} is not impl yet")
+    LocalFunction(lf) => [KnfStmt::ClosureDef(self.local_function_to_knf(lf))]  // TODO: check impl
+    // t => raise KnfTransformError("\{t} is not impl yet")
   }
 }
 

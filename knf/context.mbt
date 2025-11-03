@@ -77,20 +77,60 @@ pub fn Context::new() -> Context {
   Context::{ name_env: Env::new(), capture: Array::new(), globals: Map::new() }
 }
 
+// ///|
+// pub fn Context::lookup_name(self : Context, s : String) -> (Name, Type)? {
+//   let name_ = loop (self.name_env.get(s), self.name_env.parent) {
+//     (Some(name), _) => break Some(name)
+//     (None, Some(parent)) => continue (parent.get(s), parent.parent)
+//     (None, None) => break None
+//   }
+//   if name_ is Some(name) {
+//     self.name_env.get_name_type(name).map(fn(ty) { (name, ty) })
+//   } else {
+//     self.globals
+//     .get(s)
+//     .map(fn(ty) {
+//       let name = Name::{ id: s, slot: 0 } // TODO: check impl
+//       (name, ty)
+//     })
+//   }
+// }
+
 ///|
 pub fn Context::lookup_name(self : Context, s : String) -> (Name, Type)? {
-  let name_ = loop (self.name_env.get(s), self.name_env.parent) {
-    (Some(name), _) => break Some(name)
-    (None, Some(parent)) => continue (parent.get(s), parent.parent)
-    (None, None) => break None
-  }
-  if name_ is Some(name) {
+  if self.name_env.get(s) is Some(name) {
     self.name_env.get_name_type(name).map(fn(ty) { (name, ty) })
+  } else {
+    self.lookup_from_parent(self.name_env, s).map(fn(it) {
+      self.capture.push(it.0) // TODO: impl it
+      it
+    })
+  }
+}
+
+///|
+fn Context::lookup_from_parent(
+  self : Self,
+  name_env : Env,
+  s : String,
+) -> (Name, Type)? {
+  if name_env.parent is Some(parent) {
+    if parent.get(s) is Some(name) {
+      parent.get_name_type(name).map(fn(ty) { (name, ty) })
+    } else {
+      self
+      .lookup_from_parent(parent, s)
+      .map(fn(it) {
+        name_env.capture.set(it.0, it.1)
+        it
+      })
+    }
   } else {
     self.globals
     .get(s)
     .map(fn(ty) {
-      let name = Name::{ id: s, slot: 0 } // TODO: check impl
+      let name = self.add_new_name(s, ty)
+      self.name_env.capture.set(name, ty)
       (name, ty)
     })
   }
