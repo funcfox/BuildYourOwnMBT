@@ -5,7 +5,71 @@ pub fn Context::top_function_codegen(
   self : Self,
   func : @knf.KnfFunction,
 ) -> @llvm.Function raise {
-  ignore(self)
-  ignore(func)
-  raise CodegenError("top_function_codegen unimplemented")
+  let func_gen = self.functions
+    .get(func.name)
+    .or_error(CodegenError("unable to find function \{func.name}"))
+  let entry_bb = func_gen.addBasicBlock(name="entry")
+  self.builder.setInsertPoint(entry_bb)
+  // add params
+  for i, p in func.params.iter2() {
+    self.name_types.set(p.0, p.1)
+    self.name_values.set(
+      p.0,
+      func_gen
+      .getArg(i + 1)
+      .or_error(CodegenError("unable to get func arg \{i+1}")),
+    )
+  }
+  let (body, last_stmt) = match func.body.stmts {
+    [] => ([], None)
+    stmts => {
+      let len = stmts.length()
+      (stmts[:len - 1].to_array(), Some(stmts[len - 1]))
+    }
+  }
+  for stmt in body.iter() {
+    self.stmt_codegen(stmt)
+  }
+  // delete params
+  for p in func.params.iter() {
+    self.name_types.remove(p.0)
+    self.name_values.remove(p.0)
+  }
+  ///// process body CMPL
+  self.function_return_codegen(last_stmt)
+  // self.function_return_codegen(Some(@knf.Return(@knf.KnfExpr::Int(0))))
+  func_gen
+}
+
+///|
+fn Context::function_return_codegen(
+  self : Self,
+  stmt : @knf.KnfStmt?,
+) -> Unit raise {
+  match stmt {
+    None | Some(ReturnUnit) => {
+      let _ = self.builder.createRetVoid()
+    }
+    Some(stmt) =>
+      match stmt {
+        Return(expr) => {
+          let expr = self
+            .expr_codegen(expr)
+            .or_error(CodegenError("unable to gen code of \{expr}"))
+          let _ = self.builder.createRet(expr)
+
+        }
+        ExprStmt(expr) => {
+          let expr = self
+            .expr_codegen(expr)
+            .or_error(CodegenError("unable to gen code of \{expr}"))
+          // println(expr)
+          let _ = self.builder.createRet(expr)
+        }
+        _ =>
+          raise CodegenError(
+            "function body syntax error: need a Return or ExprStmt",
+          )
+      }
+  }
 }
