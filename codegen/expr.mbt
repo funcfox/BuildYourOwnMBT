@@ -182,6 +182,120 @@ pub fn Context::expr_codegen(
         self.builder.createCall(make_array_func, [size_value, init_value])
       }
       |> Some
+    ArrayAccess(array_name, index_name) =>
+      {
+        let arr_ty = self.name_types
+          .get(array_name)
+          .or_error(CodegenError("unable to find type of \{array_name}"))
+        let elem_ty = match arr_ty {
+          @knf.Type::Array(inner_ty) => inner_ty
+          _ => raise CodegenError("\{array_name} is not an array type")
+        }
+        let index_value = self.name_values
+          .get(index_name)
+          .or_error(CodegenError("unable to find index value \{index_name}"))
+        let array_value = self.name_values
+          .get(array_name)
+          .or_error(CodegenError("unable to find array value \{array_name}"))
+        // determine the builtin function name
+        let get_func_name = match elem_ty {
+          Int => "array_int_get"
+          Double => "array_double_get"
+          Bool => "array_bool_get"
+          String => "array_string_get"
+          _ =>
+            raise CodegenError(
+              "Array::get not supported for element type \{elem_ty}",
+            )
+        }
+        // get the builtin function
+        let get_array_func = self.builtin_funcs
+          .get(get_func_name)
+          .or_error(
+            CodegenError("unable to find builtin function \{get_func_name}"),
+          )
+        // create call instruction
+        self.builder.createCall(get_array_func, [array_value, index_value])
+      }
+      |> Some
+    ArrayLiteral(ty, values) => {
+      let elem_ty = match ty {
+        @knf.Type::Array(inner_ty) => inner_ty
+        _ => raise CodegenError("ArrayLiteral type \{ty} is not an array type")
+      }
+      // determine the builtin function names
+      let make_func_name = match elem_ty {
+        Int => "make_int_array"
+        Double => "make_double_array"
+        Bool => "make_bool_array"
+        String => "make_string_array"
+        _ =>
+          raise CodegenError(
+            "Array::make not supported for element type \{elem_ty}",
+          )
+      }
+      // create call instruction to make the array
+      let make_array_func = self.builtin_funcs
+        .get(make_func_name)
+        .or_error(
+          CodegenError("unable to find builtin function \{make_func_name}"),
+        )
+      let size_value = self.llvm_ctx.getConstInt32(values.length())
+        as &@llvm.Value
+      // for init value, we can use any default value of the element type
+      let init_value = match elem_ty {
+        Int => self.llvm_ctx.getConstInt32(0) as &@llvm.Value
+        Double => self.llvm_ctx.getConstDouble(0.0) as &@llvm.Value
+        Bool => self.llvm_ctx.getConstBool(false) as &@llvm.Value
+        String => {
+          let ret_value = self.builder.createGlobalString(
+              "",
+              name="str_lit_\{self.str_cnt}",
+            )
+            as &@llvm.Value
+          self.str_cnt += 1
+          ret_value
+        } // TODO: check impl
+        _ => raise CodegenError("Unsupported element type in array literal")
+      }
+      let array_ptr = self.builder.createCall(make_array_func, [
+        size_value, init_value,
+      ])
+      // determine the builtin function name for put
+      let put_func_name = match elem_ty {
+        Int => "array_int_put"
+        Double => "array_double_put"
+        Bool => "array_bool_put"
+        String => "array_string_put"
+        _ =>
+          raise CodegenError(
+            "Array::put not supported for element type \{elem_ty}",
+          )
+      }
+      // get the builtin function
+      let put_array_func = self.builtin_funcs
+        .get(put_func_name)
+        .or_error(
+          CodegenError("unable to find builtin function \{put_func_name}"),
+        )
+      // fill in the elements
+      for i, val_name in values.iter2() {
+        let val_value = self.name_values
+          .get(val_name)
+          .or_error(
+            CodegenError(
+              "unable to find array literal element value \{val_name}",
+            ),
+          )
+        let index_value = self.llvm_ctx.getConstInt32(i) as &@llvm.Value
+        // create call instruction to put the element
+        self.builder.createCall(put_array_func, [
+          array_ptr, index_value, val_value,
+        ])
+        |> ignore
+      }
+      array_ptr |> Some
+    }
     e => raise CodegenError("Unsupported expression in codegen: \{e}")
   }
 }
