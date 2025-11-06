@@ -109,6 +109,9 @@ pub fn Context::check_program(
   self.collect_struct_names(program)
   // raise TypeCheckError("[Context::check_program] debug halt")
   self.collect_function_types(program)
+  // pass 2: check struct defs
+  self.collect_struct_types(program) // TODO: check here
+  // pass 3: check top-level lets and functions
   let top_lets = Map::new()
   program.top_lets.each(fn(name, tl) {
     let tl = self.check_top_let(tl)
@@ -134,6 +137,23 @@ pub fn Context::collect_struct_names(
 ) -> Unit {
   program.struct_defs.each(fn(name, sdef) {
     self.struct_defs.set(name, StructDef::{ name: sdef.name, fields: [] })
+  })
+}
+
+///|
+fn Context::collect_struct_types(
+  self : Self,
+  program : @parser.Program,
+) -> Unit raise TypeCheckError {
+  program.struct_defs.each(fn(name, sdef) {
+    let fields = sdef.fields.map(fn(field) {
+      StructField::{
+        name: field.name,
+        ty: self.check_parser_type(field.ty, mutable=field.is_mut),
+      }
+    })
+    let struct_def = StructDef::{ name: sdef.name, fields }
+    self.struct_defs.set(name, struct_def)
   })
 }
 

@@ -5,11 +5,30 @@ pub fn Context::stmt_codegen(self : Self, stmt : @knf.KnfStmt) -> Unit raise {
     LetMut(name, ty, expr) => self.let_mut_stmt_codegen(name, ty, expr)
     Assign(name, expr) => self.assign_stmt_codegen(name, expr)
     ArrayPut(name, idx, expr) => self.array_put_codegen(name, idx, expr)
-    StructFieldSet(_) =>
-      raise CodegenError("StructFieldSet not implemented yet")
+    StructFieldSet(struct_name, field_name, value_name) =>
+      self.struct_field_set_codegen(struct_name, field_name, value_name)
     While(_) => raise CodegenError("While not implemented yet")
-    ExprStmt(_) => raise CodegenError("ExprStmt not implemented yet")
-    Return(_) => raise CodegenError("Return with value not implemented yet")
+    ExprStmt(expr) => {
+      // println("[Context::stmt_codegen]::ExprStmt \{expr}")
+      let _ = self
+        .expr_codegen(expr)
+        .or_error(
+          CodegenError(
+            "[Context::stmt_codegen]::ExprStmt unable to gen code of \{expr}",
+          ),
+        )
+
+    }
+    Return(expr) => { // TODO: check impl
+      let ret_value = self
+        .expr_codegen(expr)
+        .or_error(
+          CodegenError(
+            "[Context::stmt_codegen]::Return unable to gen code of \{expr}",
+          ),
+        )
+      self.builder.createRet(ret_value) |> ignore
+    }
     ReturnUnit => raise CodegenError("Return unit not implemented yet")
     ClosureDef(_) => raise CodegenError("ClosureDef not implemented yet")
   }
@@ -111,15 +130,90 @@ pub fn Context::array_put_codegen(
 }
 
 ///|
-pub fn Context::struct_field_set_codegen(
+// pub fn Context::struct_field_set_codegen(
+//   self : Self,
+//   name : @knf.Name,
+//   field : String,
+//   value_name : @knf.Name,
+// ) -> Unit raise {
+//   ignore(self)
+//   ignore(name)
+//   ignore(field)
+//   ignore(value_name)
+//   raise CodegenError("StructFieldSet codegen not implemented yet")
+// }
+
+///|
+fn Context::struct_field_set_codegen(
   self : Self,
-  name : @knf.Name,
-  field : String,
+  struct_name : @knf.Name,
+  field_name : String,
   value_name : @knf.Name,
 ) -> Unit raise {
-  ignore(self)
-  ignore(name)
-  ignore(field)
-  ignore(value_name)
-  raise CodegenError("StructFieldSet codegen not implemented yet")
+  fn wmsg(msg : String) -> String {
+    "[Context::struct_field_set_codegen] \{msg}"
+  }
+
+  let struct_ptr = self.name_values
+    .get(struct_name)
+    .or_error(
+      CodegenError(
+        wmsg("unable to find struct variable \{struct_name} for StructFieldSet"),
+      ),
+    )
+  let struct_ty = self.name_types
+    .get(struct_name)
+    .or_error(
+      CodegenError(
+        wmsg(
+          "unable to find type of struct variable \{struct_name} for StructFieldSet",
+        ),
+      ),
+    )
+  let struct_name_str = match struct_ty {
+    Struct(sname) => sname
+    _ =>
+      raise CodegenError(
+        wmsg("\{struct_name} is not a struct type for StructFieldSet"),
+      )
+  }
+  let struct_def = self.knf_struct_types
+    .get(struct_name_str)
+    .or_error(
+      CodegenError(
+        wmsg(
+          "unable to find struct definition for struct type \{struct_name_str} for StructFieldSet",
+        ),
+      ),
+    )
+  let field_idx = struct_def.fields
+    .search_by(fn(f) { f.0 == field_name })
+    .or_error(
+      CodegenError(
+        wmsg(
+          "unable to find field \{field_name} in struct \{struct_def.name} for StructFieldSet",
+        ),
+      ),
+    )
+  let struct_ty_llvm = self.struct_types
+    .get(struct_name_str)
+    .or_error(
+      CodegenError(
+        wmsg(
+          "unable to find LLVM type of struct variable \{struct_name} for StructFieldSet",
+        ),
+      ),
+    )
+  let field_ptr = self.builder.createGEP(struct_ptr, struct_ty_llvm, [
+    self.llvm_ctx.getConstInt32(0),
+    self.llvm_ctx.getConstInt32(field_idx),
+  ])
+  let value = self.name_values
+    .get(value_name)
+    .or_error(
+      CodegenError(
+        wmsg("unable to find value variable \{value_name} for StructFieldSet"),
+      ),
+    )
+  self.builder.createStore(value, field_ptr) |> ignore
 }

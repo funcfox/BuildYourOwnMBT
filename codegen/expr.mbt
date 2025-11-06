@@ -9,6 +9,10 @@ pub fn Context::expr_codegen(
   self : Self,
   expr : @knf.KnfExpr,
 ) -> &@llvm.Value? raise {
+  fn wmsg(msg : String) -> String {
+    "[Context::expr_codegen]: \{msg}"
+  }
+
   match expr {
     Int(i) => (self.llvm_ctx.getConstInt32(i) : &@llvm.Value) |> Some
     Double(d) => (self.llvm_ctx.getConstDouble(d) as &@llvm.Value) |> Some
@@ -295,6 +299,80 @@ pub fn Context::expr_codegen(
         |> ignore
       }
       array_ptr |> Some
+    }
+    Block(block) => self.block_codegen(block)
+    If(cond, then_block, else_block) =>
+      self.if_codegen(cond, then_block, else_block)
+    CreateStruct(name, fields) => {
+      let ty = self.struct_types
+        .get(name)
+        .or_error(CodegenError(wmsg("unable to find struct type: \{name}")))
+      // malloc struct space
+      let malloc_func = self.builtin_funcs
+        .get("moonbit_malloc")
+        .or_error(CodegenError(""))
+      let struct_size = self.llvm_mod.getDataLayout().getTypeAllocSize(ty)
+      let struct_ptr = self.builder.createCall(malloc_func, [
+        self.llvm_ctx.getConstInt32(struct_size),
+      ])
+      // fill in fields
+      let knf_struct_def = self.knf_struct_types
+        .get(name)
+        .or_error(CodegenError(wmsg("unable to find knf struct def: \{name}")))
+      for it in fields.iter() {
+        let (field_name, field_value_name) = it
+        let field_idx = knf_struct_def.fields
+          .search_by(fn(k) { k.0 == field_name })
+          .or_error(
+            CodegenError(
+              wmsg("unable to find field \{field_name} in struct \{name}"),
+            ),
+          )
+        let field_ptr = self.builder.createGEP(struct_ptr, ty, [
+          self.llvm_ctx.getConstInt32(0),
+          self.llvm_ctx.getConstInt32(field_idx),
+        ])
+        let field_value = self.name_values
+          .get(field_value_name)
+          .or_error(
+            CodegenError(wmsg("unable to find value for field \{field_name}")),
+          )
+        self.builder.createStore(field_value, field_ptr) |> ignore
+      }
+      struct_ptr |> Some
+    }
+    FieldAccess(struct_name, field_name) => {
+      let ty = self.name_types
+        .get(struct_name)
+        .or_error(CodegenError(wmsg("unable to find type of \{struct_name}")))
+      let struct_name_str = match ty {
+        Struct(sname) => sname
+        _ => raise CodegenError(wmsg("\{struct_name} is not a struct type"))
+      }
+      let struct_def = self.knf_struct_types
+        .get(struct_name_str)
+        .or_error(
+          CodegenError(wmsg("unable to find knf struct def: \{struct_name_str}")),
+        )
+      let struct_ty = self.struct_types.get(struct_name_str).or_error(
+        CodegenError(wmsg("unable to find struct type: \{struct_name_str}"))
+      )
+      let field_idx = struct_def.fields
+        .search_by(fn(k) { k.0 == field_name })
+        .or_error(
+          CodegenError(
+            wmsg("unable to find field \{field_name} in struct \{struct_name}"),
+          ),
+        )
+      let struct_value = self.name_values
+        .get(struct_name)
+        .or_error(CodegenError(wmsg("unable to find value of \{struct_name}")))
+      let field_ptr = self.builder.createGEP(struct_value, struct_ty, [
+        self.llvm_ctx.getConstInt32(0),
+        self.llvm_ctx.getConstInt32(field_idx),
+      ])
+      let field_ty = self.type_codegen_opaque(struct_def.fields[field_idx].2)
+      self.builder.createLoad(field_ty, field_ptr) |> Some
     }
     e => raise CodegenError("Unsupported expression in codegen: \{e}")
   }

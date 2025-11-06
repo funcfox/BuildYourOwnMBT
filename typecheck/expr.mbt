@@ -160,10 +160,10 @@ pub fn Context::check_expr(
       let if_expr = self.check_if_expr(if_expr)
       Expr::{ kind: IfExpr(if_expr), ty: if_expr.ty }
     }
-    _ =>
-      raise TypeCheckError(
-        "[Context::check_expr] not yet impl it: \{expr.kind}",
-      )
+    BlockExpr(block_expr) => {
+      let block_expr = self.check_block_expr(block_expr)
+      Expr::{ kind: BlockExpr(block_expr), ty: block_expr.ty }
+    }
   }
 }
 

@@ -66,14 +66,13 @@ fn Context::function_return_codegen(
             .expr_codegen(expr)
             .or_error(CodegenError("unable to gen code of \{expr}"))
           let _ = self.builder.createRet(expr)
-
         }
         ExprStmt(expr) => {
           let expr = self
             .expr_codegen(expr)
-            .or_error(CodegenError("unable to gen code of \{expr}"))
-          // println(expr)
-          let _ = self.builder.createRet(expr)
+          if expr is Some(ret_expr) {
+            let _ = self.builder.createRet(ret_expr)  // TODO: check impl
+          }
         }
         // _ =>
         //   raise CodegenError(
