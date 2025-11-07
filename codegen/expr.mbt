@@ -352,11 +352,15 @@ pub fn Context::expr_codegen(
       let struct_def = self.knf_struct_types
         .get(struct_name_str)
         .or_error(
-          CodegenError(wmsg("unable to find knf struct def: \{struct_name_str}")),
+          CodegenError(
+            wmsg("unable to find knf struct def: \{struct_name_str}"),
+          ),
         )
-      let struct_ty = self.struct_types.get(struct_name_str).or_error(
-        CodegenError(wmsg("unable to find struct type: \{struct_name_str}"))
-      )
+      let struct_ty = self.struct_types
+        .get(struct_name_str)
+        .or_error(
+          CodegenError(wmsg("unable to find struct type: \{struct_name_str}")),
+        )
       let field_idx = struct_def.fields
         .search_by(fn(k) { k.0 == field_name })
         .or_error(
@@ -374,6 +378,36 @@ pub fn Context::expr_codegen(
       let field_ty = self.type_codegen_opaque(struct_def.fields[field_idx].2)
       self.builder.createLoad(field_ty, field_ptr) |> Some
     }
+    TupleAccess(name, idx) => {
+      let ty = self.name_types
+        .get(name)
+        .or_error(CodegenError(wmsg("unable to find type of \{name}")))
+      let anon_struct_ty = match ty {
+        Tuple(elem_tys) => self.tuple_ty_to_anon_struct_ty(elem_tys)
+        _ => raise CodegenError(wmsg("\{name} is not a tuple type"))
+      }
+      let tuple_value = self.name_values
+        .get(name)
+        .or_error(CodegenError(wmsg("unable to find value of \{name}")))
+      let elem_ptr = self.builder.createGEP(tuple_value, anon_struct_ty, [
+        self.llvm_ctx.getConstInt32(0),
+        self.llvm_ctx.getConstInt32(idx),
+      ])
+      let elem_ty = match ty {
+        Tuple(elem_tys) => self.type_codegen_opaque(elem_tys[idx])
+        _ => raise CodegenError("unreachable")
+      }
+      self.builder.createLoad(elem_ty, elem_ptr) |> Some
+    }
     e => raise CodegenError("Unsupported expression in codegen: \{e}")
   }
+}
+
+///|
+fn Context::tuple_ty_to_anon_struct_ty(
+  self : Self,
+  tys : Array[@knf.Type],
+) -> @llvm.StructType raise {
+  let llvm_tys = tys.map(fn(t) { self.type_codegen_opaque(t) })
+  self.llvm_ctx.getStructType(llvm_tys)
 }
