@@ -399,6 +399,74 @@ pub fn Context::expr_codegen(
       }
       self.builder.createLoad(elem_ty, elem_ptr) |> Some
     }
+    TupleLiteral(elem_names) => {
+      let elem_tys = elem_names.map(fn(name) {
+        self.name_types
+        .get(name)
+        .or_error(CodegenError(wmsg("unable to find type of \{name}")))
+      })
+      let anon_struct_ty = self.tuple_ty_to_anon_struct_ty(elem_tys)
+      let anon_struct_size = self.llvm_mod
+        .getDataLayout()
+        .getTypeAllocSize(anon_struct_ty)
+      // call minimoonbit_malloc to malloc
+      let malloc_func = self.builtin_funcs
+        .get("moonbit_malloc")
+        .or_error(CodegenError(wmsg("unable to get moonbit_malloc")))
+      let anon_struct_ptr = self.builder.createCall(malloc_func, [
+        self.llvm_ctx.getConstInt32(anon_struct_size),
+      ])
+      for idx, elem_name in elem_names {
+        let elem_value = self.name_values
+          .get(elem_name)
+          .or_error(CodegenError(wmsg("unable to get value of \{elem_name}")))
+        let elem_ptr = self.builder.createGEP(anon_struct_ptr, anon_struct_ty, [
+          self.llvm_ctx.getConstInt32(0),
+          self.llvm_ctx.getConstInt32(idx),
+        ])
+        self.builder.createStore(elem_value, elem_ptr) |> ignore
+      }
+      anon_struct_ptr |> Some
+    }
+    Call(func_name, arg_names) => {
+      let arg_values = arg_names.map(fn(name) {
+        self.name_values
+        .get(name)
+        .or_error(
+          CodegenError(
+            wmsg("unable to get value of func \{func_name} param \{name}"),
+          ),
+        )
+      })
+      let func_name_str = func_name.id // TODO: check impl
+      // let func = match self.functions.get(func_name_str) {
+      //   Some(func) => func
+      //   None =>
+      //     self.builtin_funcs
+      //     .get(func_name_str)
+      //     .or_error(
+      //       CodegenError(wmsg("unabel to find function \{func_name_str}")),
+      //     )
+      // }
+      // let null_ptr = self.llvm_ctx.getConstPointerNull(self.llvm_ctx.getPtrTy())
+      // self.builder.createCall(func, [null_ptr, ..arg_values]) |> Some
+      match self.functions.get(func_name_str) {
+        Some(func) => {
+          let null_ptr = self.llvm_ctx.getConstPointerNull(
+            self.llvm_ctx.getPtrTy(),
+          )
+          self.builder.createCall(func, [null_ptr, ..arg_values]) |> Some
+        }
+        None => {
+          let func = self.builtin_funcs
+            .get(func_name_str)
+            .or_error(
+              CodegenError(wmsg("unabel to find function \{func_name_str}")),
+            )
+          self.builder.createCall(func, arg_values) |> Some
+        }
+      }
+    }
     e => raise CodegenError("Unsupported expression in codegen: \{e}")
   }
 }
